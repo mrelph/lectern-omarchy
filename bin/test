@@ -7,4 +7,5 @@ cd "$ROOT/build/tests"
 
 qmake6 "$ROOT/tests/lectern-omarchy_tests.pro"
 make -j"4"
+unset QT_QPA_PLATFORMTHEME
 QT_QPA_PLATFORM=offscreen ./lectern-omarchy_tests

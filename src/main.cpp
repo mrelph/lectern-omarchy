@@ -21,8 +21,11 @@ int main(int argc, char **argv)
 {
     const QByteArray command = argc > 1 ? QByteArray(argv[1]) : QByteArray();
     const bool headless = command == "info" || command == "check" || command == "export" || command == "skill";
-    if (headless || command == "--help" || command == "-h" || command == "--version" || command == "-v")
+    if (headless || command == "--help" || command == "-h" || command == "--version" || command == "-v") {
         qputenv("QT_QPA_PLATFORM", "offscreen");
+        // Omarchy's GTK platform theme requires a display even with an offscreen Qt backend.
+        qunsetenv("QT_QPA_PLATFORMTHEME");
+    }
     QGuiApplication app(argc, argv);
     app.setApplicationName("lectern-omarchy");
     app.setApplicationVersion("0.1.0");
