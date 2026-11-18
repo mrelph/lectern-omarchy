@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Lectern
+Name[da]=Lectern
+Comment=Edit and present Markdown slide decks
+Comment[da]=Redigér og vis Markdown-præsentationer
+Exec=lectern-omarchy open %f
+Icon=lectern-omarchy
+Terminal=false
+Categories=Office;Presentation;
+StartupWMClass=lectern-omarchy
+MimeType=text/markdown;
