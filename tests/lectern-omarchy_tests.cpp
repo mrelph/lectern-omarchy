@@ -2,6 +2,7 @@
 #include "slideview.h"
 #include "theme.h"
 #include "translator.h"
+#include "updater.h"
 
 #include <QFile>
 #include <QQmlApplicationEngine>
@@ -93,11 +94,13 @@ private slots:
         backend.sample();
         QQuickStyle::setStyle("Material");
         qmlRegisterType<SlideView>("Lectern", 1, 0, "SlideView");
+        Updater updater("0.2.0", {});
         QQmlApplicationEngine engine;
         QObject::connect(&translator, &Translator::changed, &engine, &QQmlEngine::retranslate);
         engine.rootContext()->setContextProperty("translator", &translator);
         engine.rootContext()->setContextProperty("theme", &theme);
         engine.rootContext()->setContextProperty("backend", &backend);
+        engine.rootContext()->setContextProperty("updater", &updater);
         engine.load(QUrl("qrc:/Main.qml"));
         QVERIFY(!engine.rootObjects().isEmpty());
         auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());

@@ -2,6 +2,7 @@
 #include "slideview.h"
 #include "theme.h"
 #include "translator.h"
+#include "updater.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -28,7 +29,7 @@ int main(int argc, char **argv)
     }
     QGuiApplication app(argc, argv);
     app.setApplicationName("lectern-omarchy");
-    app.setApplicationVersion("0.1.0");
+    app.setApplicationVersion(LECTERN_VERSION);
     app.setDesktopFileName("lectern-omarchy");
     app.setWindowIcon(QIcon::fromTheme("lectern-omarchy"));
     QQuickStyle::setStyle("Material");
@@ -114,12 +115,14 @@ int main(int argc, char **argv)
     app.installTranslator(&translator);
     Theme theme;
     Backend backend;
+    Updater updater(app.applicationVersion(), app.applicationFilePath());
     QQmlApplicationEngine engine;
     QObject::connect(&translator, &Translator::changed, &engine, &QQmlEngine::retranslate);
     qmlRegisterType<SlideView>("Lectern", 1, 0, "SlideView");
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("theme", &theme);
     engine.rootContext()->setContextProperty("translator", &translator);
+    engine.rootContext()->setContextProperty("updater", &updater);
     if (!args.isEmpty())
         backend.open(args[0]);
     engine.load(QUrl("qrc:/Main.qml"));

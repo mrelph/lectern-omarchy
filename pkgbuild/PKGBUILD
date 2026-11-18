@@ -1,5 +1,5 @@
 pkgname=lectern-omarchy
-pkgver=0.1.0
+pkgver=$(<"${startdir:-$PWD}/../VERSION")
 pkgrel=1
 pkgdesc='Edit and present Markdown slide decks on Omarchy'
 arch=('x86_64' 'aarch64')

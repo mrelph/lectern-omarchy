@@ -21,6 +21,16 @@ bin/install              # Build and install through pacman
 
 File selection uses the [XDG Desktop Portal file chooser](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.FileChooser.html). The package adds **Lectern** to the Omarchy launcher and registers it as a Markdown file handler. The app follows Omarchy’s accent, Hyprland rounding, and language setting. English and Danish are bundled.
 
+## Updates
+
+Select **Updates** in the sidebar to check the latest stable [GitHub release](https://github.com/mrelph/lectern-omarchy/releases/latest). For a user-local installation at `~/.local/bin/lectern-omarchy`, select **Install update** when a matching Linux binary is available. Lectern verifies the GitHub release asset’s SHA-256 digest before replacing the executable. Restart Lectern to run the new version.
+
+For a system installation, select **View release** and install the matching Arch package with `sudo pacman -U <package>`. The first release includes prebuilt x86_64 assets.
+
+### Publishing a release
+
+Set `VERSION`, commit, and tag that commit with the corresponding `vX.Y.Z` tag. Build the Arch package from that checkout and upload both the package and its executable to the stable GitHub release. Name the executable `lectern-omarchy-linux-x86_64` or `lectern-omarchy-linux-arm64` to match Qt’s reported build architecture.
+
 ## Deck format
 
 Write Markdown in a UTF-8 file. A line containing only `---` starts a new slide outside fenced code. Start a speaker notes section with `Note:` or `Notes:`. The preview shows those notes below the slide, and the presentation and PDF omit them.
@@ -59,6 +69,6 @@ lectern-omarchy skill install
 
 ## Swift repository review
 
-[Lectern for macOS](https://github.com/mrelph/Lectern) at commit `519692c` separates the deck parser and editor into `LecternCore`, the AppKit slide renderer and exporters into `LecternRender`, and the CLI and stdio MCP into `LecternTool`. The SwiftUI and AppKit frontend adds the folder library, native document handling, presentation controllers, and Ephy integration. The Linux project keeps the Markdown document contract and the shared renderer architecture. Qt renders the slides, so typography and layout can differ between platforms.
+The original Lectern for macOS separates the deck parser and editor into `LecternCore`, the AppKit slide renderer and exporters into `LecternRender`, and the CLI and stdio MCP into `LecternTool`. The SwiftUI and AppKit frontend adds the folder library, native document handling, presentation controllers, and Ephy integration. The Linux project keeps the Markdown document contract and the shared renderer architecture. Qt renders the slides, so typography and layout can differ between platforms.
 
 The initial Omarchy release covers editing and presenting single decks. macOS features outside this release include the folder library, second-display presenter view, transitions, PNG export, slide mutation commands, MCP, and Ephy.

@@ -101,6 +101,40 @@ ApplicationWindow {
         }
     }
 
+    Dialog {
+        id: updates
+        objectName: "updates"
+        anchors.centerIn: parent
+        width: Math.min(win.width - 40, 520)
+        title: qsTr("Lectern updates")
+        modal: true
+        standardButtons: Dialog.Close
+
+        contentItem: ColumnLayout {
+            spacing: 12
+            Label {
+                Layout.fillWidth: true
+                text: updater.status
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+            }
+            RowLayout {
+                Button {
+                    text: qsTr("Install update")
+                    visible: updater.canInstall
+                    enabled: !updater.busy
+                    onClicked: updater.install()
+                }
+                Button {
+                    text: qsTr("View release")
+                    visible: updater.available
+                    enabled: !updater.busy
+                    onClicked: updater.openRelease()
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -203,6 +237,14 @@ ApplicationWindow {
                                     textFormat: Text.PlainText
                                 }
                             }
+                        }
+                    }
+                    Button {
+                        objectName: "checkUpdates"
+                        text: qsTr("Updates")
+                        onClicked: {
+                            updates.open()
+                            updater.check()
                         }
                     }
                     Button { text: qsTr("Open example"); onClicked: win.guard(() => backend.sample()) }
