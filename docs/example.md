@@ -20,7 +20,7 @@ Open the same file in any Markdown editor. Use Ctrl+Enter to present from the cu
 - Lines after `Note:` appear in the editor’s speaker notes panel.
 
 Note:
-Use the sidebar to jump to a slide, or move the cursor to it in the editor.
+Click a thumbnail to jump to a slide, or move the cursor to it in the editor.
 
 ---
 

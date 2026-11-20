@@ -4,8 +4,8 @@ pkgrel=1
 pkgdesc='Edit and present Markdown slide decks on Omarchy'
 arch=('x86_64' 'aarch64')
 license=('MIT')
-depends=('qt6-base' 'qt6-declarative' 'qt6-wayland' 'qt6-svg' 'xdg-desktop-portal')
-makedepends=('gcc' 'make')
+depends=('qt6-base' 'qt6-declarative' 'qt6-wayland' 'qt6-svg' 'qt6-multimedia' 'qt6-imageformats' 'poppler' 'ffmpeg' 'md4c' 'xdg-desktop-portal')
+makedepends=('gcc' 'make' 'wayland-protocols')
 
 build() {
   cd "$startdir/.."

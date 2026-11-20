@@ -1,6 +1,11 @@
 <RCC>
     <qresource prefix="/">
+        <file>LecternDialog.qml</file>
+        <file>ThemeGallery.qml</file>
+        <file>CommandPalette.qml</file>
         <file>Main.qml</file>
+        <file>SourceEditor.qml</file>
+        <file>PresenterView.qml</file>
         <file alias="example.md">../docs/example.md</file>
         <file alias="SKILL.md">agent-skill.md</file>
         <file alias="i18n/da.json">i18n/da.json</file>

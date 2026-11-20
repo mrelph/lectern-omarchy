@@ -24,9 +24,16 @@ void Portal::choose(const QString &action, const QString &name)
         return;
     }
 
-    const bool open = action == "open";
-    const QString title = open ? tr("Open Markdown deck") : action == "pdf" ? tr("Export PDF") : tr("Save Markdown deck");
+    const bool selectDirectory = action == "folder" || action == "png";
+    const bool open = selectDirectory || action == "open" || action == "media";
+    const QMap<QString, QString> titles{
+        {"media", tr("Insert image or video")}, {"folder", tr("Add a deck folder")},
+        {"png", tr("Choose a destination for slide images")}, {"open", tr("Open Markdown deck")},
+        {"pdf-notes", tr("Export PDF with notes")}, {"pdf", tr("Export PDF")}
+    };
+    const QString title = titles.value(action, tr("Save Markdown deck"));
     QVariantMap options{{"handle_token", token}, {"modal", true}};
+    if (selectDirectory) options.insert("directory", true);
     if (!open && !name.isEmpty())
         options.insert("current_name", name);
 
