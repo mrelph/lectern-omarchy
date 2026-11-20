@@ -60,7 +60,7 @@ Object schema(const Tool &tool)
         if (key == "path")
             prop["description"] = "Path to a .md deck, relative to the server working directory or absolute.";
         if (key == "font")
-            prop["enum"] = QJsonArray { "ember", "roboto", "bookerly", "geist-mono" };
+            prop["enum"] = QJsonArray { "ember", "roboto", "bookerly", "geist-mono", "ubuntu" };
         if (key == "code_font")
             prop["enum"] = QJsonArray { "system", "geist-mono" };
         if (key == "markdown")

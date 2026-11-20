@@ -16,9 +16,9 @@ FocusScope {
 
     property int elapsed: 0
     property date now: new Date()
-    readonly property color panel: "#171a21"
-    readonly property color line: "#2b303b"
-    readonly property color muted: "#aab2c2"
+    readonly property color panel: theme.colors.panel
+    readonly property color line: theme.colors.line
+    readonly property color muted: theme.colors.muted
 
     function refreshClock() {
         now = new Date()
@@ -99,7 +99,7 @@ FocusScope {
                 text: presenter.elapsedLabel(presenter.elapsed, Qt.locale(translator.language))
                 font.family: "monospace"
                 font.pixelSize: 28
-                color: theme.accent
+                color: theme.colors.focus
                 Accessible.name: qsTr("Elapsed time: %1").arg(text)
             }
             Button { text: qsTr("Reset timer"); flat: true; onClicked: presenter.resetTimer() }
@@ -121,7 +121,7 @@ FocusScope {
             text: presenter.blankColor === "black" ? qsTr("Audience screen is black") :
                   presenter.blankColor === "white" ? qsTr("Audience screen is white") :
                   qsTr("Slide %1").arg(presenter.jumpDigits)
-            color: theme.accent
+            color: theme.colors.focus
             background: Rectangle { color: presenter.panel; radius: theme.radius }
         }
 
@@ -190,7 +190,7 @@ FocusScope {
         height: shortcutText.implicitHeight + 36
         radius: theme.radius
         color: presenter.panel
-        border.color: theme.accent
+        border.color: theme.colors.focus
         Label {
             id: shortcutText
             anchors.fill: parent

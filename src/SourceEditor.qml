@@ -78,7 +78,7 @@ FocusScope {
     }
     ToolTip { id: feedback; parent: root; y: 8 }
 
-    component MarkdownArea: TextArea {
+    component MarkdownArea: AppTextArea {
         id: area
         DropArea {
             anchors.fill: parent
@@ -101,7 +101,11 @@ FocusScope {
         leftPadding: 24
         rightPadding: 24
         topPadding: 20
-        background: null
+        background: Rectangle {
+            color: theme.colors.reader
+            border.width: area.activeFocus ? 1 : 0
+            border.color: theme.colors.focus
+        }
     }
     ScrollView {
         anchors.fill: parent

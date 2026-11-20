@@ -8,7 +8,7 @@ Dialog {
     header: Label {
         visible: dialog.title.length > 0
         text: dialog.title
-        color: "#edf0f5"
+        color: theme.colors.text
         font.pixelSize: 20
         font.weight: Font.DemiBold
         leftPadding: 18
@@ -17,14 +17,15 @@ Dialog {
         bottomPadding: 8
         background: Rectangle { color: "transparent" }
     }
-    Material.theme: Material.Dark
-    Material.accent: theme.accent
-    Material.foreground: "#edf0f5"
+    Material.theme: theme.colors.dark ? Material.Dark : Material.Light
+    Material.accent: theme.colors.focus
+    Material.background: theme.colors.panel
+    Material.foreground: theme.colors.text
     Material.roundedScale: theme.radius
     Overlay.modal: Rectangle { color: "#a0000000" }
     background: Rectangle {
-        color: "#1b1e25"
+        color: theme.colors.panel
         radius: theme.radius
-        border.color: "#3c4350"
+        border.color: theme.colors.line
     }
 }

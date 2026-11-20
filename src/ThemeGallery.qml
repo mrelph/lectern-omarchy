@@ -5,8 +5,8 @@ import Lectern
 
 LecternDialog {
     id: gallery
-    readonly property var names: ["auto", "light", "dark", "high-contrast", "warm-paper", "bold-color", "minimal-mono", "blocks-light", "blocks-dark"]
-    readonly property var labels: [qsTr("System"), qsTr("Light"), qsTr("Dark"), qsTr("High contrast"), qsTr("Warm paper"), qsTr("Bold color"), qsTr("Minimal mono"), qsTr("Blocks light"), qsTr("Blocks dark")]
+    readonly property var names: ["auto", "light", "dark", "high-contrast", "warm-paper", "bold-color", "minimal-mono", "blocks-light", "blocks-dark", "editorial", "terminal", "dusk", "swiss", "sunrise"]
+    readonly property var labels: [qsTr("System"), qsTr("Light"), qsTr("Dark"), qsTr("High contrast"), qsTr("Warm paper"), qsTr("Bold color"), qsTr("Minimal mono"), qsTr("Blocks light"), qsTr("Blocks dark"), qsTr("Editorial"), qsTr("Terminal"), qsTr("Dusk"), qsTr("Swiss"), qsTr("Sunrise")]
     signal chosen(string name, bool currentOnly)
     title: qsTr("Choose a theme")
     anchors.centerIn: parent
@@ -27,6 +27,7 @@ LecternDialog {
             Layout.fillHeight: true
             Layout.fillWidth: true
             clip: true
+            ScrollBar.vertical: ScrollBar {}
             cellWidth: width / 3
             cellHeight: Math.min(height / 3, cellWidth * .56 + 38)
             model: gallery.visible ? gallery.names : []
@@ -38,7 +39,7 @@ LecternDialog {
                 Accessible.name: gallery.labels[index]
                 contentItem: ColumnLayout {
                     SlideView { Layout.fillWidth: true; Layout.fillHeight: true; deck: backend; previewTheme: modelData }
-                    Label { text: gallery.labels[index]; color: modelData === backend.slideTheme ? theme.accent : "#edf0f5" }
+                    Label { text: gallery.labels[index]; color: modelData === backend.slideTheme ? theme.colors.focus : theme.colors.text }
                 }
                 onClicked: gallery.chosen(modelData, scope.currentIndex === 1)
             }

@@ -9,3 +9,5 @@ HEADERS += ../src/editorprojection.h
 SOURCES += ../src/editorprojection.cpp
 LIBS += -lmd4c
 include(../src/presentationidle.pri)
+HEADERS += ../src/decklook.h
+SOURCES += ../src/decklook.cpp

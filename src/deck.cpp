@@ -1,4 +1,6 @@
 #include "deck.h"
+#include "decklook.h"
+#include <QScopeGuard>
 #include <md4c.h>
 
 #include <QAbstractTextDocumentLayout>
@@ -197,8 +199,10 @@ bool drawCentered(QPainter &painter, const QString &text, const QRectF &rect, QF
 
 QStringList Deck::themes()
 {
-    return {"auto", "light", "dark", "high-contrast", "warm-paper", "bold-color",
-            "minimal-mono", "blocks-light", "blocks-dark"};
+    QStringList names{"auto", "light", "dark", "high-contrast", "warm-paper", "bold-color",
+                      "minimal-mono", "blocks-light", "blocks-dark"};
+    for (const auto &look : DeckLook::all()) names.append(look.name);
+    return names;
 }
 
 Deck Deck::parse(const QString &text)
@@ -392,9 +396,18 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
         {"blocks-light", {"#f5f3ef", "black", "#b54400", "#f5f3ef", "black"}},
         {"blocks-dark", {"black", "white", "#ff6200", "black", "white"}}
     };
-    const auto colors = palettes.value(preset, palettes.value("light"));
+    const auto *look = DeckLook::find(preset);
+    auto colors = palettes.value(preset, palettes.value("light"));
+    painter.save();
+    const auto restore = qScopeGuard([&painter] { painter.restore(); });
+    painter.setClipRect(QRect(QPoint(), canvas), Qt::IntersectClip);
+    if (look) colors = {look->paper,look->ink,look->accent,look->paper,look->ink};
     const auto foreground = colors.ink;
     painter.fillRect(QRect(QPoint(), canvas), colors.paper);
+    if (look) {
+        painter.setRenderHint(QPainter::Antialiasing);
+        look->page(painter,canvas,layout);
+    }
     painter.setPen(foreground);
     if (blocks && quote) {
         painter.fillRect(canvas.width()-200, 440, 40, 40, QColor("#8f0a3e"));
@@ -404,15 +417,24 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     QRectF content(80, 70, canvas.width() - 160, canvas.height() - 140);
+    if (look) {
+        const int margin = qRound(canvas.width() * (look->style == DeckLook::Editorial ? .11 : .075));
+        content = QRectF(margin,72,canvas.width()-2*margin,canvas.height()-144);
+    }
     if (quote && blocks) content.adjust(0, 0, -120, 0);
     static const QMap<QString, QString> families{{"roboto", "Roboto"}, {"ember", "Ember Modern Text"},
-        {"bookerly", "Bookerly"}, {"geist-mono", "Geist Mono"}};
+        {"bookerly", "Bookerly"}, {"geist-mono", "Geist Mono"}, {"ubuntu","Ubuntu"}};
     QFont font("sans-serif");
     auto requestedFamily = families.value(fontName.toLower(), fontName);
     if (requestedFamily.isEmpty() && preset == "warm-paper")
         requestedFamily = QFontDatabase::hasFamily("Bookerly") ? "Bookerly" : "Noto Serif";
     if (requestedFamily.isEmpty() && preset == "minimal-mono") requestedFamily = QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
-    const QStringList candidates{requestedFamily, "Inter", "Noto Sans", "Liberation Sans", "DejaVu Sans"};
+    const auto chosenFont = fontName.isEmpty() && look ? look->font : fontName;
+    if (look) requestedFamily = families.value(chosenFont.toLower(),chosenFont);
+    QString fallback;
+    if (chosenFont.compare("bookerly",Qt::CaseInsensitive)==0) fallback = "Noto Serif";
+    if (chosenFont.compare("geist-mono",Qt::CaseInsensitive)==0) fallback = QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
+    const QStringList candidates{requestedFamily, fallback, "Inter", "Noto Sans", "Liberation Sans", "DejaVu Sans"};
     for (const auto &family : candidates) {
         if (!family.isEmpty() && QFontDatabase::hasFamily(family)) {
             font.setFamily(family);
@@ -422,6 +444,11 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
 
     QString visible = body;
 
+    if (layout == "title" && look) {
+        if (!look->title(painter,canvas,content,*this,font,fontSize) && warnings)
+            warnings->append(QObject::tr("Title does not fit the slide"));
+        return;
+    }
     if (layout == "title") {
         painter.fillRect(QRect(QPoint(), canvas), colors.title);
         painter.setPen(colors.titleInk);
@@ -445,7 +472,9 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
 
     SlideDocument doc(directory);
     doc.setDocumentMargin(0);
-    if (quote) {
+    if (look) {
+        if (quote) content.adjust(60,32,-60,-32);
+    } else if (quote) {
         painter.setPen(colors.accent);
         QFont mark = font;
         mark.setPixelSize(104);
@@ -462,6 +491,7 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
     font.setPixelSize(quote ? qRound(fontSize * 1.35) : fontSize);
     doc.setDefaultFont(font);
     doc.setMarkdown(visible, QTextDocument::MarkdownFeatures(QTextDocument::MarkdownDialectGitHub) | QTextDocument::MarkdownNoHTML);
+    if (look) look->styleDocument(doc,*this,fontSize);
     struct VideoBox { QTextBlock block; int position; QUrl url; QSizeF size; };
     QList<VideoBox> videoBoxes;
     const auto record = [videos](const QUrl &url, QRectF rect) {
@@ -519,7 +549,7 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
         }
     }
     QFont mono = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    if (codeFont == "geist-mono" && QFontDatabase::hasFamily("Geist Mono"))
+    if ((codeFont == "geist-mono" || (codeFont.isEmpty() && look && look->codeFont == "geist-mono")) && QFontDatabase::hasFamily("Geist Mono"))
         mono.setFamily("Geist Mono");
     // Qt marks Markdown code spans and blocks with a monospace family.
     QVector<QPair<int, int>> codeRanges;
@@ -557,7 +587,8 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
     const auto size = doc.size();
     const qreal scale = qMin(1., qMin(content.width() / qMax(1., size.width()),
                                       content.height() / qMax(1., size.height())));
-    if (quote) content.translate(0, qMax(0., (content.height()-size.height()*scale)/2));
+    if (quote || (look && code)) content.translate(0, qMax(0., (content.height()-size.height()*scale)/2));
+    if (look) look->decorate(painter,{content.topLeft(),QSizeF(content.width(),size.height()*scale)},*this,doc,scale);
     for (const auto &video : videoBoxes) {
         const auto line = video.block.layout()->lineForTextPosition(video.position);
         if (!line.isValid()) continue;
@@ -571,7 +602,7 @@ void Slide::paint(QPainter &painter, QSize canvas, bool dark, const QString &dir
     painter.translate(content.topLeft());
     painter.scale(scale, scale);
     QAbstractTextDocumentLayout::PaintContext ctx;
-    ctx.palette.setColor(QPalette::Text, code ? colors.paper : foreground);
+    ctx.palette.setColor(QPalette::Text, code ? (look ? look->codeInk : colors.paper) : foreground);
     ctx.palette.setColor(QPalette::Link, colors.accent);
     doc.documentLayout()->draw(&painter, ctx);
     painter.restore();

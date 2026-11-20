@@ -1,3 +1,4 @@
+#include "decklook.h"
 #include "agentcommands.h"
 #include "backend.h"
 #include "deck.h"
@@ -64,8 +65,8 @@ const QList<Preset> presets = { { "auto", "Auto", "Follow the desktop appearance
 QString checkedFont(QString font)
 {
     font = font.toLower();
-    if (!QStringList { "ember", "roboto", "bookerly", "geist-mono" }.contains(font))
-        throw QString("Expected ember, roboto, bookerly or geist-mono");
+    if (!QStringList { "ember", "roboto", "bookerly", "geist-mono", "ubuntu" }.contains(font))
+        throw QString("Expected ember, roboto, bookerly, geist-mono or ubuntu");
     return font;
 }
 
@@ -160,6 +161,11 @@ QJsonObject AgentCommands::perform(const QString &tool, const QJsonObject &args,
                         : p.name == "warm-paper" ? "bookerly"
                                                  : "ember" },
                 { "codeFont", mono || p.name.startsWith("blocks-") ? "geist-mono" : "system" } });
+        }
+        for (const auto &look : DeckLook::all()) {
+            themes.append(Object{{"name",look.name},{"label",look.label},{"summary",look.summary},
+                {"dark",look.style == DeckLook::Dusk || look.style == DeckLook::Terminal},
+                {"font",look.font},{"codeFont",look.codeFont}});
         }
         return { { "themes", themes } };
     }

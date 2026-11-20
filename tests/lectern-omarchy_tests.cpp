@@ -4,6 +4,8 @@
 #include "translator.h"
 #include "updater.h"
 
+#include <cmath>
+#include <QStyleHints>
 #include <QClipboard>
 #include <QDragEnterEvent>
 #include <QMimeData>
@@ -160,6 +162,49 @@ private slots:
         QCOMPARE(restored.library().size(), 2);
         restored.forgetFolder(temp.path());
         QCOMPARE(restored.library().size(), 1);
+    }
+
+    void rendersLayoutPresets_data()
+    {
+        QTest::addColumn<QString>("preset");
+        QTest::addColumn<QString>("aspect");
+        for (const QString preset : {"editorial", "terminal", "dusk", "swiss", "sunrise"}) {
+            for (const QString aspect : {"4:3", "16:9"})
+                QTest::newRow(qPrintable(preset + " " + aspect)) << preset << aspect;
+        }
+    }
+
+    void rendersLayoutPresets()
+    {
+        QFETCH(QString, preset);
+        QFETCH(QString, aspect);
+        QTemporaryDir temp;
+        const auto source = "---\ntheme: " + preset + "\naspect: " + aspect
+            + "\n---\n# A short title\n## Subtitle\nNote:\nFor the presenter\n"
+              "---\n<!-- theme: dark -->\n# A different theme\n";
+        Backend backend;
+        const auto path = temp.filePath("deck.md");
+        QVERIFY(replace(path, source.toUtf8()));
+        QVERIFY(backend.open(path));
+        const auto deck = Deck::parse(source);
+        QVERIFY(deck.validate(temp.path()).isEmpty());
+        QImage preview(deck.width, 720, QImage::Format_RGB32);
+        QPainter painter(&preview);
+        backend.paint(painter, false);
+        painter.end();
+        const QString output = temp.filePath("images");
+        QString error;
+        QVERIFY2(deck.exportPng(output,temp.path(),false,&error), qPrintable(error));
+        QImage exported(output + "/slide-01.png");
+        QVERIFY(!exported.isNull());
+        const QMap<QString,QColor> papers{{"editorial","#f8f3e8"},{"terminal","#0b0e0b"},
+            {"swiss","#ffffff"},{"sunrise","#fff1e6"},{"dusk","#2b1458"}};
+        QCOMPARE(preview.pixelColor(preview.width()/2,0),papers.value(preset));
+        QCOMPARE(exported.pixelColor(exported.width()/2,0),papers.value(preset));
+        QVERIFY(QImage(output + "/slide-02.png").pixelColor(0,0) != papers.value(preset));
+        if (preset == "dusk") QCOMPARE(preview.pixelColor(0,719), QColor("#10306e"));
+        if (preset == "sunrise") QCOMPARE(preview.pixelColor(deck.width-1,20), QColor("#ffc9a8"));
+        if (preset == "swiss") QCOMPARE(preview.pixelColor(qRound(deck.width*.075)+2,74), QColor("#d00000"));
     }
 
     void exportsThemedSlideImagesAndChecksMedia()
@@ -544,6 +589,133 @@ private slots:
             QCOMPARE(backend.source(), original);
             QVERIFY(!backend.dirty());
         }
+    }
+
+    void applicationAppearance()
+    {
+        QTemporaryDir temp;
+        QVERIFY(QDir(temp.path()).mkdir("theme"));
+        const auto toml = temp.filePath("theme/colors.toml");
+        QVERIFY(replace(toml, "mode = 'dark'\nbackground = '#123456'\naccent = '#102034'\n"));
+        Theme theme(temp.path());
+        QCOMPARE(theme.appearance(), "system");
+        QCOMPARE(theme.interfacePalette(), "omarchy");
+        QCOMPARE(theme.colors()["reader"].value<QColor>(), QColor("#123456"));
+        QCOMPARE(QColor(theme.accent()), QColor("#102034"));
+
+        Backend backend;
+        const auto path = temp.filePath("example.md");
+        const QByteArray bytes = "---\r\ntheme: auto\r\n---\r\n# Sky\r\n\r\nNote: clouds\r\n";
+        QVERIFY(replace(path, bytes));
+        QVERIFY(backend.open(path));
+        const QString source = backend.source();
+        const auto systemScheme = qGuiApp->styleHints()->colorScheme();
+        auto png = [&](const QString &folder) {
+            QString error;
+            if (!Deck::parse(backend.source()).exportPng(temp.filePath(folder), temp.path(),
+                    qGuiApp->styleHints()->colorScheme() == Qt::ColorScheme::Dark, &error))
+                return QImage();
+            return QImage(temp.filePath(folder + "/slide-01.png"));
+        };
+        const auto originalPng = png("before");
+        QVERIFY(!originalPng.isNull());
+        SlideView preview;
+        preview.setDeck(&backend);
+        preview.setSize({320, 180});
+        auto render = [&] {
+            QImage image(320, 180, QImage::Format_RGB32);
+            image.fill(Qt::black);
+            QPainter painter(&image);
+            preview.paint(&painter);
+            return image;
+        };
+        const auto originalPreview = render();
+
+        Translator translator(temp.filePath("language"));
+        Updater updater("test", {});
+        qmlRegisterType<SlideView>("Lectern", 1, 0, "SlideView");
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("backend", &backend);
+        engine.rootContext()->setContextProperty("translator", &translator);
+        engine.rootContext()->setContextProperty("theme", &theme);
+        engine.rootContext()->setContextProperty("updater", &updater);
+        engine.load(QUrl("qrc:/Main.qml"));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+        auto *dialog = window->findChild<QObject *>("appAppearanceDialog");
+        auto *modePicker = window->findChild<QObject *>("appAppearanceMode");
+        auto *palettePicker = window->findChild<QObject *>("appInterfacePalette");
+        auto *notes = window->findChild<QObject *>("notesEditor");
+        auto *library = window->findChild<QObject *>("libraryQuery");
+        auto *strip = window->findChild<QObject *>("slideStrip");
+        auto *presenter = window->findChild<QObject *>("presenterView");
+        auto *editor = window->findChild<QObject *>("fullSourceEditor");
+        QVERIFY(dialog && modePicker && palettePicker && notes && presenter && editor && library && strip);
+        QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
+        QVERIFY(QMetaObject::invokeMethod(modePicker, "activated", Q_ARG(int, 1)));
+        QVERIFY(QMetaObject::invokeMethod(palettePicker, "activated", Q_ARG(int, 2)));
+        QCOMPARE(theme.appearance(), "light");
+        QCOMPARE(theme.interfacePalette(), "paper");
+        QCOMPARE(window->color(), QColor("#f3ead8"));
+        QCOMPARE(dialog->property("background").value<QQuickItem *>()->property("color").value<QColor>(), QColor("#ece0c8"));
+        QCOMPARE(presenter->property("panel").value<QColor>(), QColor("#ece0c8"));
+        QCOMPARE(editor->property("color").value<QColor>(), theme.colors()["text"].value<QColor>());
+        QCOMPARE(library->property("selectionColor").value<QColor>(), theme.colors()["selection"].value<QColor>());
+        auto *selected = strip->property("currentItem").value<QQuickItem *>();
+        QVERIFY(selected);
+        auto *highlight = selected->property("background").value<QQuickItem *>();
+        QVERIFY(highlight);
+        QCOMPARE(highlight->property("color").value<QColor>(), theme.colors()["selection"].value<QColor>());
+        QCOMPARE(notes->property("selectionColor").value<QColor>(), theme.colors()["selection"].value<QColor>());
+        QCOMPARE(editor->property("selectedTextColor").value<QColor>(), theme.colors()["onSelection"].value<QColor>());
+        Theme restarted(temp.path());
+        QCOMPARE(restarted.appearance(), "light");
+        QCOMPARE(restarted.interfacePalette(), "paper");
+
+        auto luminance = [](QColor c) {
+            auto linear = [](double v) { return v <= .04045 ? v / 12.92 : std::pow((v+.055)/1.055, 2.4); };
+            return .2126*linear(c.redF()) + .7152*linear(c.greenF()) + .0722*linear(c.blueF());
+        };
+        auto contrast = [&](QColor a, QColor b) {
+            const auto x = luminance(a), y = luminance(b);
+            return (std::max(x,y)+.05)/(std::min(x,y)+.05);
+        };
+        for (const auto name : {"omarchy","inkwell","paper","slate","forest","midnight"}) {
+            theme.setInterfacePalette(name);
+            for (const auto mode : {"dark","light"}) {
+                theme.setAppearance(mode);
+                const auto colors = theme.colors();
+                auto c = [&](QString key) { return colors.value(key).value<QColor>(); };
+                for (const auto surface : {"reader","panel","chrome","canvas"}) {
+                    for (const auto role : {"text","muted","focus"})
+                        QVERIFY2(contrast(c(role), c(surface)) >= 4.5, qPrintable(QString("%1/%2: %3 on %4").arg(name, mode, role, surface)));
+                    QVERIFY(contrast(c("selection"), c(surface)) >= 3);
+                }
+                QVERIFY(contrast(c("selection"), c("onSelection")) >= 4.5);
+                QVERIFY(contrast(c("accent"), c("onAccent")) >= 4.5);
+            }
+        }
+        QCOMPARE(qGuiApp->styleHints()->colorScheme(), systemScheme);
+        QCOMPARE(render(), originalPreview);
+        QCOMPARE(png("after"), originalPng);
+        QCOMPARE(backend.source(), source);
+        QVERIFY(!backend.dirty());
+        QFile deckFile(path);
+        QVERIFY(deckFile.open(QIODevice::ReadOnly));
+        QCOMPARE(deckFile.readAll(), bytes);
+
+        backend.edit(source + "draft", 0);
+        const auto draft = backend.source();
+        QVERIFY(backend.dirty());
+        theme.setAppearance("system");
+        theme.setInterfacePalette("omarchy");
+        QVERIFY(replace(toml, "mode = 'light'\nbackground = '#faf5ef'\naccent = '#aa3344'\n"));
+        QTRY_COMPARE(QColor(theme.accent()), QColor("#aa3344"));
+        QVERIFY(!theme.colors()["dark"].toBool());
+        QCOMPARE(theme.colors()["reader"].value<QColor>(), QColor("#faf5ef"));
+        QCOMPARE(window->color(), theme.colors()["chrome"].value<QColor>());
+        QCOMPARE(backend.source(), draft);
+        QVERIFY(backend.dirty());
     }
 
 };

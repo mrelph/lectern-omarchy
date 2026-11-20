@@ -20,7 +20,7 @@ LecternDialog {
     }
     contentItem: ColumnLayout {
         spacing: 8
-        TextField {
+        AppTextField {
             id: search
             objectName: "commandSearch"
             Layout.fillWidth: true
@@ -38,14 +38,20 @@ LecternDialog {
             clip: true
             model: palette.matches
             delegate: ItemDelegate {
+                id: resultRow
                 required property var modelData
                 required property int index
                 width: ListView.view.width
                 highlighted: ListView.isCurrentItem
                 Accessible.name: modelData[0]
+                background: Rectangle {
+                    color: parent.highlighted ? theme.colors.selection : parent.hovered ? theme.colors.canvas : "transparent"
+                    border.width: parent.visualFocus ? 2 : 0
+                    border.color: parent.highlighted ? theme.colors.onSelection : theme.colors.focus
+                }
                 contentItem: RowLayout {
-                    Label { Layout.fillWidth: true; text: modelData[0]; elide: Text.ElideRight }
-                    Label { text: modelData[1]; opacity: 0.65 }
+                    Label { Layout.fillWidth: true; color: resultRow.highlighted ? theme.colors.onSelection : theme.colors.text; text: modelData[0]; elide: Text.ElideRight }
+                    Label { text: modelData[1]; color: resultRow.highlighted ? theme.colors.onSelection : theme.colors.muted }
                 }
                 onClicked: palette.execute(index)
             }

@@ -14,9 +14,19 @@ ApplicationWindow {
     minimumWidth: 760
     minimumHeight: 540
     title: (backend.title || qsTr("Untitled deck")) + (backend.dirty ? " • " : " — ") + "Lectern"
-    color: "#111318"
-    Material.theme: Material.Dark
-    Material.accent: theme.accent
+    color: theme.colors.chrome
+    Material.theme: theme.colors.dark ? Material.Dark : Material.Light
+    Material.accent: theme.colors.focus
+    Material.foreground: theme.colors.text
+    Material.background: theme.colors.panel
+    palette.window: theme.colors.chrome
+    palette.windowText: theme.colors.text
+    palette.base: theme.colors.reader
+    palette.text: theme.colors.text
+    palette.button: theme.colors.panel
+    palette.buttonText: theme.colors.text
+    palette.highlight: theme.colors.selection
+    palette.highlightedText: theme.colors.onSelection
     Material.roundedScale: theme.radius
 
     property int workspaceMode: viewSettings.workspaceMode
@@ -45,9 +55,9 @@ ApplicationWindow {
     property int previousVisibility: Window.Windowed
     property bool quitting: false
     property var pendingAction
-    readonly property color panel: "#171a21"
-    readonly property color line: "#2b303b"
-    readonly property color muted: "#aab2c2"
+    readonly property color panel: theme.colors.panel
+    readonly property color line: theme.colors.line
+    readonly property color muted: theme.colors.muted
 
     component EditButton: ToolButton {
         required property string hint
@@ -58,11 +68,11 @@ ApplicationWindow {
         ToolTip.text: hint
         ToolTip.visible: hovered || visualFocus
         ToolTip.delay: 400
-        palette.buttonText: theme.accent
+        palette.buttonText: theme.colors.focus
         background: Rectangle {
             radius: theme.radius
-            color: parent.down || parent.hovered ? win.line : "transparent"
-            border.color: parent.visualFocus ? theme.accent : win.line
+            color: parent.down || parent.hovered ? theme.colors.canvas : "transparent"
+            border.color: parent.visualFocus ? theme.colors.focus : win.line
         }
     }
 
@@ -278,6 +288,7 @@ ApplicationWindow {
             [qsTr("Insert image or video…"), "Ctrl+Shift+I", () => { if (notesEditor.applyChanges() && editor.allowsImport()) backend.choose("media") }],
             [qsTr("Move slide up"), "Ctrl+Alt+↑", () => win.moveCurrent(-1)],
             [qsTr("Move slide down"), "Ctrl+Alt+↓", () => win.moveCurrent(1)],
+            [qsTr("App appearance"), "", () => appLook.open()],
             [qsTr("Choose a slide theme"), "", () => gallery.open()],
             [qsTr("Open library"), "Ctrl+Shift+L", () => library.open()],
             [qsTr("Add folder…"), "Ctrl+Shift+O", () => backend.choose("folder")],
@@ -299,6 +310,38 @@ ApplicationWindow {
         ]
     }
     LecternDialog {
+        id: appLook
+        objectName: "appAppearanceDialog"
+        title: qsTr("App appearance")
+        anchors.centerIn: parent
+        modal: true
+        width: Math.min(400, win.width - 48)
+        standardButtons: Dialog.Close
+        contentItem: GridLayout {
+            columns: 2
+            Label { text: qsTr("Appearance mode") }
+            ComboBox {
+                objectName: "appAppearanceMode"
+                Layout.fillWidth: true
+                Accessible.name: qsTr("Appearance mode")
+                readonly property var values: ["system", "light", "dark"]
+                model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]
+                currentIndex: values.indexOf(theme.appearance)
+                onActivated: index => theme.appearance = values[index]
+            }
+            Label { text: qsTr("Interface palette") }
+            ComboBox {
+                objectName: "appInterfacePalette"
+                Layout.fillWidth: true
+                Accessible.name: qsTr("Interface palette")
+                readonly property var values: ["omarchy", "inkwell", "paper", "slate", "forest", "midnight"]
+                model: [qsTr("Omarchy"), qsTr("Inkwell"), qsTr("Paper"), qsTr("Slate"), qsTr("Forest"), qsTr("Midnight")]
+                currentIndex: values.indexOf(theme.interfacePalette)
+                onActivated: index => theme.interfacePalette = values[index]
+            }
+        }
+    }
+    LecternDialog {
         id: library
         modal: true
         title: qsTr("Deck library")
@@ -313,7 +356,7 @@ ApplicationWindow {
                 Button { text: qsTr("Add folder…"); onClicked: backend.choose("folder") }
                 Button { text: qsTr("Open file…"); onClicked: { library.close(); win.guard(() => backend.choose("open")) } }
             }
-            TextField { id: libraryQuery; Layout.fillWidth: true; placeholderText: qsTr("Find decks…") }
+            AppTextField { id: libraryQuery; objectName: "libraryQuery"; Layout.fillWidth: true; placeholderText: qsTr("Find decks…") }
             ListView {
                 id: files
                 Layout.fillWidth: true
@@ -325,6 +368,11 @@ ApplicationWindow {
                     required property int index
                     width: ListView.view.width
                     height: modelData.folder ? 42 : 60
+                    background: Rectangle {
+                        color: parent.hovered ? theme.colors.canvas : "transparent"
+                        border.width: parent.visualFocus ? 2 : 0
+                        border.color: theme.colors.focus
+                    }
                     contentItem: RowLayout {
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -386,7 +434,7 @@ ApplicationWindow {
             ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                TextArea {
+                AppTextArea {
                     id: exampleSource
                     readOnly: true
                     selectByMouse: true
@@ -394,6 +442,13 @@ ApplicationWindow {
                     font.family: "monospace"
                     wrapMode: TextEdit.Wrap
                 }
+            }
+            Label {
+                visible: examples.currentIndex === 5 || examples.currentIndex === 6
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: win.muted
+                text: qsTr("Deck and slide themes") + " · " + gallery.names.join(", ")
             }
             RowLayout {
                 Button { text: qsTr("Copy Markdown"); onClicked: { exampleSource.selectAll(); exampleSource.copy(); exampleSource.deselect() } }
@@ -476,7 +531,7 @@ ApplicationWindow {
             ScrollView {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                TextArea {
+                AppTextArea {
                     readOnly: true
                     selectByMouse: true
                     wrapMode: TextEdit.Wrap
@@ -510,7 +565,7 @@ ApplicationWindow {
         standardButtons: Dialog.Close
         ScrollView {
             anchors.fill: parent
-            TextArea { readOnly: true; wrapMode: TextEdit.Wrap; text: checkDialog.problems.length ? checkDialog.problems.join("\n") : qsTr("All slides passed the checks.") }
+            AppTextArea { readOnly: true; wrapMode: TextEdit.Wrap; text: checkDialog.problems.length ? checkDialog.problems.join("\n") : qsTr("All slides passed the checks.") }
         }
     }
 
@@ -587,6 +642,7 @@ ApplicationWindow {
                     onClicked: fileMenu.open()
                     Menu {
                         id: fileMenu
+                        MenuItem { text: qsTr("App appearance…"); onTriggered: appLook.open() }
                         MenuItem { text: qsTr("Deck library…"); onTriggered: library.open() }
                         MenuItem { text: qsTr("Markdown reference…"); onTriggered: reference.open() }
                         MenuItem { text: qsTr("Open example"); onTriggered: win.guard(() => backend.sample()) }
@@ -622,7 +678,6 @@ ApplicationWindow {
                         implicitHeight: 32
                         radius: theme.radius
                         color: theme.accent
-                        opacity: parent.down ? 0.8 : 1
                         border.width: parent.visualFocus ? 2 : 0
                         border.color: theme.accentForeground
                     }
@@ -695,7 +750,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 handle: Rectangle {
                     implicitWidth: 6
-                    color: SplitHandle.hovered || SplitHandle.pressed ? theme.accent : win.line
+                    color: SplitHandle.hovered || SplitHandle.pressed ? theme.colors.focus : win.line
                 }
                 ColumnLayout {
                     visible: win.workspaceMode !== 2
@@ -794,7 +849,7 @@ ApplicationWindow {
                                 Layout.fillHeight: true
                                 Layout.fillWidth: true
                                 clip: true
-                                TextArea {
+                                AppTextArea {
                                     id: notesEditor
                                     objectName: "notesEditor"
                                     property int slideIndex: 0
@@ -837,9 +892,14 @@ ApplicationWindow {
                                     selectByMouse: true
                                     wrapMode: TextEdit.Wrap
                                     padding: 0
-                                    background: null
+                                    background: Rectangle {
+                                        color: "transparent"
+                                        border.width: notesEditor.activeFocus ? 1 : 0
+                                        border.color: theme.colors.focus
+                                    }
                                     textFormat: TextEdit.PlainText
-                                    placeholderText: qsTr("Add speaker notes for this slide.")
+                                    Accessible.name: qsTr("Speaker notes")
+                                    placeholderText: length === 0 && !activeFocus ? qsTr("Add speaker notes for this slide.") : ""
                                     Keys.onEscapePressed: event => {
                                         refresh()
                                         editor.forceActiveFocus()
@@ -851,6 +911,7 @@ ApplicationWindow {
                     }
                     ListView {
                         id: rail
+                        objectName: "slideStrip"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 101
                         orientation: ListView.Horizontal
@@ -871,7 +932,9 @@ ApplicationWindow {
                             onClicked: win.navigate(index)
                             background: Rectangle {
                                 radius: theme.radius
-                                color: parent.highlighted ? "#2a3040" : parent.hovered ? "#222631" : "transparent"
+                                color: parent.highlighted ? theme.colors.selection : parent.hovered ? theme.colors.canvas : "transparent"
+                                border.width: parent.visualFocus ? 2 : 0
+                                border.color: parent.highlighted ? theme.colors.onSelection : theme.colors.focus
                             }
                             contentItem: ColumnLayout {
                                 spacing: 3
@@ -884,7 +947,7 @@ ApplicationWindow {
                                 Label {
                                     Layout.fillWidth: true
                                     text: (index + 1).toLocaleString(Qt.locale(translator.language), 'f', 0) + "   " + (modelData || qsTr("Empty slide"))
-                                    color: backend.index === index ? theme.accent : win.muted
+                                    color: backend.index === index ? theme.colors.onSelection : win.muted
                                     font.pixelSize: 11
                                     elide: Text.ElideRight
                                     textFormat: Text.PlainText
@@ -946,8 +1009,10 @@ ApplicationWindow {
         anchors.fill: parent
         color: "black"
         visible: win.presenting && (!win.presenterMode || win.dualPresentation || win.singleAudience)
-        Material.theme: Material.Dark
-        Material.accent: theme.accent
+        Material.theme: theme.colors.dark ? Material.Dark : Material.Light
+        Material.accent: theme.colors.focus
+        Material.foreground: theme.colors.text
+        Material.background: theme.colors.panel
         property string jumpDigits: ""
         property string blankColor: ""
         property bool showKeys: false
