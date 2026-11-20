@@ -17,5 +17,6 @@ package() {
   install -Dm755 build/lectern-omarchy "$pkgdir/usr/bin/lectern-omarchy"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 "$startdir/lectern-omarchy.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/lectern-omarchy.png"
+  install -Dm644 "$startdir/lectern-omarchy.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/lectern-omarchy.svg"
   install -Dm644 "$startdir/lectern-omarchy.desktop" "$pkgdir/usr/share/applications/lectern-omarchy.desktop"
 }
