@@ -17,7 +17,6 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QSaveFile>
-#include <QScopeGuard>
 #include <QScreen>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -716,129 +715,6 @@ private slots:
         QCOMPARE(theme.colors()["reader"].value<QColor>(), QColor("#faf5ef"));
         QCOMPARE(window->color(), theme.colors()["chrome"].value<QColor>());
         QCOMPARE(backend.source(), draft);
-        QVERIFY(backend.dirty());
-    }
-
-    void settingsDialogControlsAndShortcuts()
-    {
-        QTemporaryDir temp;
-        QVERIFY(temp.isValid());
-        QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope, temp.path());
-        const auto restoreSettingsPath = qScopeGuard([this] {
-            QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope, m_state.path());
-        });
-        const QString path = temp.filePath("settings.md");
-        const QString source = "# First\n\nNote: speaker notes\n";
-        QVERIFY(replace(path, source.toUtf8()));
-        Backend backend;
-        QVERIFY(backend.open(path));
-        Theme theme(temp.path());
-        Translator translator(temp.filePath("language"));
-        Updater updater("test", {});
-        qmlRegisterType<SlideView>("Lectern", 1, 0, "SlideView");
-        QQmlApplicationEngine engine;
-        engine.rootContext()->setContextProperty("theme", &theme);
-        engine.rootContext()->setContextProperty("translator", &translator);
-        engine.rootContext()->setContextProperty("backend", &backend);
-        engine.rootContext()->setContextProperty("updater", &updater);
-        engine.load(QUrl("qrc:/Main.qml"));
-        QVERIFY(!engine.rootObjects().isEmpty());
-        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
-        QVERIFY(window);
-        QVERIFY(QTest::qWaitForWindowExposed(window));
-
-        auto item = [&](const char *name) { return window->findChild<QQuickItem *>(name); };
-        auto click = [&](QQuickItem *control) {
-            QVERIFY(control);
-            QVERIFY(control->isVisible() && control->isEnabled());
-            QTest::mouseClick(window, Qt::LeftButton, {}, control->mapToScene(control->boundingRect().center()).toPoint());
-        };
-        auto *dialog = window->findChild<QObject *>("appAppearanceDialog");
-        QVERIFY(dialog);
-        QVERIFY(!dialog->property("visible").toBool());
-        QTest::keyClick(window, Qt::Key_2, Qt::ControlModifier);
-        QTRY_COMPARE(window->property("workspaceMode").toInt(), 1);
-        click(item("settingsButton"));
-        QTRY_VERIFY(dialog->property("opened").toBool());
-        auto *tabs = item("settingsTabs");
-        QVERIFY(tabs);
-        QCOMPARE(tabs->property("currentIndex").toInt(), 0);
-
-        // These shortcuts ordinarily switch the workspace, insert a slide,
-        // or start presentation. None may escape the modal settings dialog.
-        QTest::keyClick(window, Qt::Key_3, Qt::ControlModifier);
-        QTest::keyClick(window, Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier);
-        QTest::keyClick(window, Qt::Key_Return, Qt::ControlModifier);
-        QCOMPARE(window->property("workspaceMode").toInt(), 1);
-        QVERIFY(!window->property("presenting").toBool());
-        QCOMPARE(backend.source(), source);
-        QVERIFY(!backend.dirty());
-        QVERIFY(dialog->property("opened").toBool());
-
-        auto *mode = item("appAppearanceMode");
-        auto *palette = item("appInterfacePalette");
-        QVERIFY(mode && palette && mode->isVisible() && palette->isVisible());
-        mode->forceActiveFocus();
-        QTest::keyClick(window, Qt::Key_End);
-        QTRY_COMPARE(theme.appearance(), "dark");
-        palette->forceActiveFocus();
-        QTest::keyClick(window, Qt::Key_End);
-        QTRY_COMPARE(theme.interfacePalette(), "midnight");
-
-        QQuickItem *workspaceTab = nullptr;
-        QVERIFY(QMetaObject::invokeMethod(tabs, "itemAt", Q_RETURN_ARG(QQuickItem *, workspaceTab), Q_ARG(int, 1)));
-        click(workspaceTab);
-        QTRY_COMPARE(tabs->property("currentIndex").toInt(), 1);
-        QVERIFY(!mode->isVisible());
-        auto *workspace = item("workspacePicker");
-        auto *zoom = item("editorZoomSetting");
-        auto *sourceEditor = item("fullSourceEditor");
-        auto *editor = item("editor");
-        auto *notes = item("notesEditor");
-        QVERIFY(workspace && zoom && sourceEditor && editor && notes);
-        QVERIFY(workspace->isVisible() && zoom->isVisible());
-        workspace->forceActiveFocus();
-        QTest::keyClick(window, Qt::Key_Home);
-        QTRY_COMPARE(window->property("workspaceMode").toInt(), 0);
-        QTest::keyClick(window, Qt::Key_Down);
-        QTRY_COMPARE(window->property("workspaceMode").toInt(), 1);
-
-        const int previousZoom = window->property("editorZoom").toInt();
-        const int step = zoom->property("stepSize").toInt();
-        const bool increase = previousZoom + step <= zoom->property("to").toInt();
-        const int expectedZoom = previousZoom + (increase ? step : -step);
-        zoom->forceActiveFocus();
-        QTest::keyClick(window, increase ? Qt::Key_Up : Qt::Key_Down);
-        QTRY_COMPARE(window->property("editorZoom").toInt(), expectedZoom);
-        QCOMPARE(sourceEditor->property("font").value<QFont>().pixelSize(), expectedZoom);
-
-        auto *paneSwitch = item("notesPaneSetting");
-        auto *editorSwitch = item("editorNotesSetting");
-        auto *awakeSwitch = item("keepAwakeSetting");
-        auto *collapsed = item("collapsedNotesEditor");
-        QVERIFY(paneSwitch && editorSwitch && awakeSwitch && collapsed);
-        const bool paneVisible = notes->isVisible();
-        QCOMPARE(paneSwitch->property("checked").toBool(), paneVisible);
-        click(paneSwitch);
-        QTRY_COMPARE(notes->isVisible(), !paneVisible);
-        const bool notesHidden = editor->property("hideNotes").toBool();
-        QCOMPARE(editorSwitch->property("checked").toBool(), !notesHidden);
-        click(editorSwitch);
-        QTRY_COMPARE(editor->property("hideNotes").toBool(), !notesHidden);
-        QCOMPARE(collapsed->isVisible(), !notesHidden);
-        const bool keepAwake = backend.keepAwake();
-        QCOMPARE(awakeSwitch->property("checked").toBool(), keepAwake);
-        click(awakeSwitch);
-        QTRY_COMPARE(backend.keepAwake(), !keepAwake);
-        QCOMPARE(backend.source(), source);
-        QVERIFY(!backend.dirty());
-
-        QTest::keyClick(window, Qt::Key_Escape);
-        QTRY_VERIFY(!dialog->property("visible").toBool());
-        QTest::keyClick(window, Qt::Key_3, Qt::ControlModifier);
-        QTRY_COMPARE(window->property("workspaceMode").toInt(), 2);
-        QTest::keyClick(window, Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier);
-        QTRY_COMPARE(backend.count(), 2);
         QVERIFY(backend.dirty());
     }
 

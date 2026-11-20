@@ -43,7 +43,7 @@ ApplicationWindow {
     onWorkspaceModeChanged: viewSettings.workspaceMode = workspaceMode
     onNotesVisibleChanged: viewSettings.notesVisible = notesVisible
     onEditorZoomChanged: viewSettings.editorZoom = editorZoom
-    readonly property bool dialogOpen: appLook.visible || commands.visible || library.visible || gallery.visible || reference.visible
+    readonly property bool dialogOpen: commands.visible || library.visible || gallery.visible || reference.visible
                                        || help.visible || checkDialog.visible || updates.visible || discard.visible || conflict.visible
     readonly property bool editing: !presenting && !dialogOpen
     property bool presenting: false
@@ -271,7 +271,6 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+Shift+R"; enabled: win.editing; onActivated: backend.reveal() }
     Shortcut { sequence: "Ctrl+Shift+O"; enabled: win.editing; onActivated: backend.choose("folder") }
     Shortcut { sequence: "Ctrl+Shift+L"; enabled: win.editing; onActivated: library.open() }
-    Shortcut { sequence: "Ctrl+,"; enabled: win.editing; onActivated: appLook.open() }
     function toggleEditorNotes() {
         if (notesEditor.applyChanges()) viewSettings.hideEditorNotes = !viewSettings.hideEditorNotes
     }
@@ -289,7 +288,7 @@ ApplicationWindow {
             [qsTr("Insert image or video…"), "Ctrl+Shift+I", () => { if (notesEditor.applyChanges() && editor.allowsImport()) backend.choose("media") }],
             [qsTr("Move slide up"), "Ctrl+Alt+↑", () => win.moveCurrent(-1)],
             [qsTr("Move slide down"), "Ctrl+Alt+↓", () => win.moveCurrent(1)],
-            [qsTr("Settings"), "Ctrl+,", () => appLook.open()],
+            [qsTr("App appearance"), "", () => appLook.open()],
             [qsTr("Choose a slide theme"), "", () => gallery.open()],
             [qsTr("Open library"), "Ctrl+Shift+L", () => library.open()],
             [qsTr("Add folder…"), "Ctrl+Shift+O", () => backend.choose("folder")],
@@ -313,117 +312,32 @@ ApplicationWindow {
     LecternDialog {
         id: appLook
         objectName: "appAppearanceDialog"
-        title: qsTr("Settings")
+        title: qsTr("App appearance")
         anchors.centerIn: parent
         modal: true
-        width: Math.min(520, win.width - 48)
+        width: Math.min(400, win.width - 48)
         standardButtons: Dialog.Close
-        onOpened: settingsTabs.currentItem.forceActiveFocus()
-        contentItem: ColumnLayout {
-            spacing: 12
-            TabBar {
-                id: settingsTabs
-                objectName: "settingsTabs"
+        contentItem: GridLayout {
+            columns: 2
+            Label { text: qsTr("Appearance mode") }
+            ComboBox {
+                objectName: "appAppearanceMode"
                 Layout.fillWidth: true
-                TabButton { text: qsTr("Appearance") }
-                TabButton { text: qsTr("Workspace") }
+                Accessible.name: qsTr("Appearance mode")
+                readonly property var values: ["system", "light", "dark"]
+                model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]
+                currentIndex: values.indexOf(theme.appearance)
+                onActivated: index => theme.appearance = values[index]
             }
-            StackLayout {
-                currentIndex: settingsTabs.currentIndex
+            Label { text: qsTr("Interface palette") }
+            ComboBox {
+                objectName: "appInterfacePalette"
                 Layout.fillWidth: true
-                GridLayout {
-                    columns: 2
-                    columnSpacing: 18
-                    Label { text: qsTr("Appearance mode") }
-                    ComboBox {
-                        objectName: "appAppearanceMode"
-                        Layout.fillWidth: true
-                        Accessible.name: qsTr("Appearance mode")
-                        readonly property var values: ["system", "light", "dark"]
-                        model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]
-                        currentIndex: values.indexOf(theme.appearance)
-                        onActivated: index => theme.appearance = values[index]
-                    }
-                    Label { text: qsTr("Interface palette") }
-                    ComboBox {
-                        objectName: "appInterfacePalette"
-                        Layout.fillWidth: true
-                        Accessible.name: qsTr("Interface palette")
-                        readonly property var values: ["omarchy", "inkwell", "paper", "slate", "forest", "midnight"]
-                        model: [qsTr("Omarchy"), qsTr("Inkwell"), qsTr("Paper"), qsTr("Slate"), qsTr("Forest"), qsTr("Midnight")]
-                        currentIndex: values.indexOf(theme.interfacePalette)
-                        onActivated: index => theme.interfacePalette = values[index]
-                    }
-                    RowLayout {
-                        Layout.columnSpan: 2
-                        Label { text: qsTr("Palette preview"); color: win.muted }
-                        Repeater {
-                            model: [theme.colors.reader, theme.colors.panel, theme.colors.text, theme.colors.focus]
-                            Rectangle {
-                                required property var modelData
-                                implicitWidth: 24
-                                implicitHeight: 24
-                                radius: theme.radius
-                                color: modelData
-                                border.color: win.line
-                            }
-                        }
-                    }
-                    Item { Layout.fillHeight: true }
-                }
-                ColumnLayout {
-                    GridLayout {
-                        columns: 2
-                        columnSpacing: 18
-                        Layout.fillWidth: true
-                        Label { text: qsTr("Workspace view") }
-                        ComboBox {
-                            objectName: "workspacePicker"
-                            Layout.fillWidth: true
-                            Accessible.name: qsTr("Workspace view")
-                            model: [qsTr("Write"), qsTr("Split view"), qsTr("Preview")]
-                            currentIndex: win.workspaceMode
-                            onActivated: index => {
-                                if (notesEditor.applyChanges()) win.workspaceMode = index
-                                currentIndex = Qt.binding(() => win.workspaceMode)
-                            }
-                        }
-                        Label { text: qsTr("Editor zoom") }
-                        SpinBox {
-                            objectName: "editorZoomSetting"
-                            Accessible.name: qsTr("Editor zoom")
-                            from: 10
-                            to: 32
-                            stepSize: 2
-                            value: win.editorZoom
-                            onValueModified: win.editorZoom = value
-                        }
-                    }
-                    Switch {
-                        objectName: "notesPaneSetting"
-                        text: qsTr("Show speaker notes pane")
-                        checked: win.notesVisible
-                        onToggled: {
-                            if (notesEditor.applyChanges()) win.notesVisible = checked
-                            checked = Qt.binding(() => win.notesVisible)
-                        }
-                    }
-                    Switch {
-                        objectName: "editorNotesSetting"
-                        text: qsTr("Show notes in editor")
-                        checked: !viewSettings.hideEditorNotes
-                        onToggled: {
-                            if (notesEditor.applyChanges()) viewSettings.hideEditorNotes = !checked
-                            checked = Qt.binding(() => !viewSettings.hideEditorNotes)
-                        }
-                    }
-                    Switch {
-                        objectName: "keepAwakeSetting"
-                        text: qsTr("Keep screen awake when presenting")
-                        checked: backend.keepAwake
-                        onToggled: backend.keepAwake = checked
-                    }
-                }
+                Accessible.name: qsTr("Interface palette")
+                readonly property var values: ["omarchy", "inkwell", "paper", "slate", "forest", "midnight"]
+                model: [qsTr("Omarchy"), qsTr("Inkwell"), qsTr("Paper"), qsTr("Slate"), qsTr("Forest"), qsTr("Midnight")]
+                currentIndex: values.indexOf(theme.interfacePalette)
+                onActivated: index => theme.interfacePalette = values[index]
             }
         }
     }
@@ -728,7 +642,7 @@ ApplicationWindow {
                     onClicked: fileMenu.open()
                     Menu {
                         id: fileMenu
-                        MenuItem { text: qsTr("Settings…"); onTriggered: appLook.open() }
+                        MenuItem { text: qsTr("App appearance…"); onTriggered: appLook.open() }
                         MenuItem { text: qsTr("Deck library…"); onTriggered: library.open() }
                         MenuItem { text: qsTr("Markdown reference…"); onTriggered: reference.open() }
                         MenuItem { text: qsTr("Open example"); onTriggered: win.guard(() => backend.sample()) }
@@ -741,6 +655,7 @@ ApplicationWindow {
                         MenuItem { text: qsTr("Save As"); onTriggered: if (notesEditor.applyChanges()) backend.choose("save") }
                         MenuItem { text: qsTr("Export slide images…"); onTriggered: backend.choose("png") }
                         MenuItem { text: qsTr("Check deck…"); onTriggered: { checkDialog.problems = backend.validate(); checkDialog.open() } }
+                        MenuItem { text: qsTr("Keep screen awake when presenting"); checkable: true; checked: backend.keepAwake; onTriggered: backend.keepAwake = checked }
                         MenuItem { text: qsTr("Export PDF"); onTriggered: backend.choose("pdf") }
                         MenuItem {
                             text: qsTr("Export PDF with notes")
@@ -772,15 +687,6 @@ ApplicationWindow {
                     onClicked: win.togglePresent()
                 }
                 Button { flat: true; text: qsTr("Presenter View"); onClicked: win.startPresentation(true) }
-                ToolButton {
-                    objectName: "settingsButton"
-                    text: "⚙"
-                    font.pixelSize: 20
-                    Accessible.name: qsTr("Settings")
-                    ToolTip.text: qsTr("Settings") + " (Ctrl+,)"
-                    ToolTip.visible: hovered || visualFocus
-                    onClicked: appLook.open()
-                }
                 Button { text: "?"; Accessible.name: qsTr("Keyboard shortcuts"); onClicked: help.open() }
             }
         }

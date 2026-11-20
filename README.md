@@ -37,7 +37,7 @@ Write Markdown in a UTF-8 file. A line containing only `---` starts a new slide 
 
 Open **File → Deck library** to search recent decks and folders you add. Lectern remembers the last saved deck and workspace view. Use **Ctrl+Shift+P** to search formatting, navigation, export, and presentation commands. **F1** opens the offline guide, shortcut list, and Markdown reference with copyable examples.
 
-Open **Settings** from the toolbar gear, **File → Settings…**, or **Ctrl+,**. The **Workspace** tab controls the workspace view, editor zoom, speaker notes pane, notes in the editor, and whether the screen stays awake during presentations. The **Appearance** tab controls the editor, library, notes, slide strip, dialogs, and presenter controls. The default **System / Omarchy** follows the current desktop colors and live accent. Choose Light or Dark to pin the interface mode, or choose Inkwell, Paper, Slate, Forest, or Midnight for a different palette. Lectern remembers both choices across restarts. Slides and exports keep their deck theme.
+**File → App appearance…** controls the editor, library, notes, slide strip, dialogs, and presenter controls. The default **System / Omarchy** follows the current desktop colors and live accent. Choose Light or Dark to pin the interface mode, or choose Inkwell, Paper, Slate, Forest, or Midnight for a different palette. Lectern remembers both choices across restarts. Slides and exports keep their deck theme.
 
 Choose **Theme** to see the current slide in every preset. Apply a theme to the whole deck or to the current slide. A slide override is stored as `<!-- theme: warm-paper -->` in the Markdown. The appearance toolbar also sets the deck font and base size.
 
@@ -78,7 +78,7 @@ Open decks reload when an external editor saves them. When a disk change collide
 
 ## Presenting
 
-Use **Settings → Workspace → Keep screen awake when presenting** to set the power preference. Lectern remembers the setting.
+Use **File → Keep screen awake when presenting** to set the power preference. Lectern remembers the setting.
 
 Start with **Present** or **Ctrl+Enter**. With a second display, Lectern opens the fullscreen audience slides there and keeps Presenter View on the display with the editor. Presenter View shows the current and next slides, scrollable speaker notes, the local clock, and an elapsed timer you can reset.
 
