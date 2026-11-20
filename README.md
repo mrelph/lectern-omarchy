@@ -35,11 +35,11 @@ Set `VERSION`, commit, and tag that commit with the corresponding `vX.Y.Z` tag. 
 
 Write Markdown in a UTF-8 file. A line containing only `---` starts a new slide outside fenced code. Start a speaker notes section with `Note:` or `Notes:`. Edit those notes in the panel below the preview. Lectern applies your notes when you leave the field or save. The fullscreen presentation and standard PDF omit them. **File → Export PDF with notes** creates a portrait handout with notes below each slide.
 
-Open **File → Deck library** to search recent decks and folders you add. Lectern remembers the last saved deck and workspace view. Use **Ctrl+Shift+P** to search formatting, navigation, export, and presentation commands. **F1** opens the offline guide, shortcut list, and Markdown reference with copyable examples.
+Use the **Deck library** icon beside the file menu to search recent decks and folders you add. Lectern remembers the last saved deck and workspace view. Use **Ctrl+Shift+P** to search formatting, navigation, export, and presentation commands. **F1** opens the offline guide, shortcut list, and Markdown reference with copyable examples.
 
-**File → App appearance…** controls the editor, library, notes, slide strip, dialogs, and presenter controls. The default **System / Omarchy** follows the current desktop colors and live accent. Choose Light or Dark to pin the interface mode, or choose Inkwell, Paper, Slate, Forest, or Midnight for a different palette. Lectern remembers both choices across restarts. Slides and exports keep their deck theme.
+Open **Settings** with the sliders icon at the right of the toolbar or **Ctrl+,**. Select a mode icon and a palette swatch to change the editor and presenter interface. The same popover includes editor zoom, notes visibility, and the presentation screen-awake preference. The default **System / Omarchy** follows the current desktop colors and live accent. Choose Light or Dark to pin the interface mode, or choose Inkwell, Paper, Slate, Forest, or Midnight for a different palette. Lectern remembers both choices across restarts. Slides and exports keep their deck theme.
 
-Choose **Theme** to see the current slide in every preset. Apply a theme to the whole deck or to the current slide. A slide override is stored as `<!-- theme: warm-paper -->` in the Markdown. The appearance toolbar also sets the deck font and base size.
+Choose the **palette** icon to see the current slide in every preset. Apply a theme to the whole deck or to the current slide. A slide override is stored as `<!-- theme: warm-paper -->` in the Markdown. The **Aa** control sets slide and code fonts and the base slide size. In Write and Split views, the formatting strip applies Markdown to the current selection. Hover or focus an icon to see its name and shortcut.
 
 An optional opening front matter block accepts `title`, `aspect` (`16:9` or `4:3`), `theme` (`auto`, `light`, `dark`, `warm-paper`, `high-contrast`, `bold-color`, `minimal-mono`, `blocks-light`, `blocks-dark`, `editorial`, `terminal`, `dusk`, `swiss`, or `sunrise`), `font` (an installed family), `font-size` (12–96 design pixels, default 36), `code-font`, and `transition` (`fade`, `slide`, or `none`). Editorial uses wide serif margins, Terminal uses prompt lines, Dusk centers titles over a gradient, Swiss uses a red block and bottom-left title, and Sunrise frames Ubuntu type with soft circles. Fonts come from the system. Relative image paths resolve alongside the saved Markdown file. See the [example deck](docs/example.md).
 
@@ -78,7 +78,7 @@ Open decks reload when an external editor saves them. When a disk change collide
 
 ## Presenting
 
-Use **File → Keep screen awake when presenting** to set the power preference. Lectern remembers the setting.
+Use **Settings → Keep screen awake when presenting** to set the power preference. Lectern remembers the setting.
 
 Start with **Present** or **Ctrl+Enter**. With a second display, Lectern opens the fullscreen audience slides there and keeps Presenter View on the display with the editor. Presenter View shows the current and next slides, scrollable speaker notes, the local clock, and an elapsed timer you can reset.
 

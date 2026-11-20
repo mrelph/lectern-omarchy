@@ -423,6 +423,22 @@ private slots:
         QVERIFY(fontPicker->property("count").toInt() > 1);
         const auto document = editor->property("textDocument").value<QQuickTextDocument *>();
         QVERIFY(document);
+        const auto word = original.indexOf("Lectern");
+        QVERIFY(word >= 0);
+        auto *sourceEditor = window->findChild<QQuickItem *>("fullSourceEditor");
+        QVERIFY(sourceEditor);
+        sourceEditor->forceActiveFocus();
+        QVERIFY(QMetaObject::invokeMethod(sourceEditor, "select", Q_ARG(int, int(word)), Q_ARG(int, int(word + 7))));
+        auto *bold = window->findChild<QQuickItem *>("formatAction0");
+        QVERIFY(bold && bold->isVisible());
+        QTest::mouseClick(window, Qt::LeftButton, {}, bold->mapToScene(bold->boundingRect().center()).toPoint());
+        QCOMPARE(backend.source(), original.left(word) + "**Lectern**" + original.mid(word + 7));
+        QTest::keyClick(window, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(backend.source(), original);
+        backend.setAppearance("code-font", "geist-mono", document);
+        QCOMPARE(backend.codeFont(), "geist-mono");
+        QTest::keyClick(window, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(backend.source(), original);
         backend.setAppearance("font-size", "48", document);
         QCOMPARE(backend.slideSize(), 48);
         QCOMPARE(backend.count(), 6);
@@ -651,9 +667,21 @@ private slots:
         auto *presenter = window->findChild<QObject *>("presenterView");
         auto *editor = window->findChild<QObject *>("fullSourceEditor");
         QVERIFY(dialog && modePicker && palettePicker && notes && presenter && editor && library && strip);
-        QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
-        QVERIFY(QMetaObject::invokeMethod(modePicker, "activated", Q_ARG(int, 1)));
-        QVERIFY(QMetaObject::invokeMethod(palettePicker, "activated", Q_ARG(int, 2)));
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        auto clickItem = [&](QQuickItem *item) {
+            QVERIFY(item && item->isVisible());
+            QTest::mouseClick(window, Qt::LeftButton, {}, item->mapToScene(item->boundingRect().center()).toPoint());
+        };
+        clickItem(window->findChild<QQuickItem *>("settingsButton"));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        QVERIFY(!window->property("editing").toBool());
+        auto clickChoice = [&](QObject *picker, int index) {
+            QQuickItem *item = nullptr;
+            QVERIFY(QMetaObject::invokeMethod(picker, "itemAt", Q_RETURN_ARG(QQuickItem *, item), Q_ARG(int, index)));
+            clickItem(item);
+        };
+        clickChoice(modePicker, 1);
+        clickChoice(palettePicker, 2);
         QCOMPARE(theme.appearance(), "light");
         QCOMPARE(theme.interfacePalette(), "paper");
         QCOMPARE(window->color(), QColor("#f3ead8"));

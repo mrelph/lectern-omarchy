@@ -154,6 +154,17 @@ void Theme::setInterfacePalette(const QString &name)
     updateColors(true);
 }
 
+QVariantMap Theme::paletteAccents() const
+{
+    QVariantMap accents;
+    const QColor desktop(m_desktop.value("accent"));
+    const bool dark = m_colors.value("dark").toBool();
+    for (const auto &palette : palettes)
+        accents.insert(palette.name, palette.name == "omarchy" && desktop.isValid()
+            ? desktop : (dark ? palette.dark : palette.light).accent);
+    return accents;
+}
+
 QString Theme::accentForeground() const
 {
     return m_colors.value("onAccent").toString();

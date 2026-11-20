@@ -288,12 +288,12 @@ bool Backend::editNotes(int index, const QString &notes, QQuickTextDocument *doc
 void Backend::setAppearance(const QString &key, const QString &value, QQuickTextDocument *document)
 {
     if (!document || !document->textDocument() ||
-        !QStringList{"theme", "font", "font-size"}.contains(key) || value.contains('\n'))
+        !QStringList{"theme", "font", "code-font", "font-size"}.contains(key) || value.contains('\n'))
         return;
     auto *doc = document->textDocument();
     QTextCursor cursor(doc);
     QString encoded = value;
-    if (key == "font") {
+    if (key == "font" || key == "code-font") {
         encoded.replace("\\", "\\\\").replace("\"", "\\\"");
         encoded = '"' + encoded + '"';
     }

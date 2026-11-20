@@ -5,6 +5,41 @@
         <file>CommandPalette.qml</file>
         <file>AppTextArea.qml</file>
         <file>AppTextField.qml</file>
+        <file>GlyphButton.qml</file>
+        <file>ToolPanel.qml</file>
+        <file>FormatBar.qml</file>
+        <file>icons/awake.svg</file>
+        <file>icons/notes.svg</file>
+        <file>icons/source-notes.svg</file>
+        <file>icons/command.svg</file>
+        <file>icons/dark.svg</file>
+        <file>icons/export.svg</file>
+        <file>icons/font.svg</file>
+        <file>icons/format/bold.svg</file>
+        <file>icons/format/bulleted-list.svg</file>
+        <file>icons/format/code-block.svg</file>
+        <file>icons/format/inline-code.svg</file>
+        <file>icons/format/italic.svg</file>
+        <file>icons/format/link.svg</file>
+        <file>icons/format/media.svg</file>
+        <file>icons/format/numbered-list.svg</file>
+        <file>icons/format/quote.svg</file>
+        <file>icons/format/slide-break.svg</file>
+        <file>icons/format/table.svg</file>
+        <file>icons/library.svg</file>
+        <file>icons/light.svg</file>
+        <file>icons/more.svg</file>
+        <file>icons/palette.svg</file>
+        <file>icons/play.svg</file>
+        <file>icons/presenter.svg</file>
+        <file>icons/preview.svg</file>
+        <file>icons/redo.svg</file>
+        <file>icons/save.svg</file>
+        <file>icons/settings.svg</file>
+        <file>icons/split.svg</file>
+        <file>icons/system.svg</file>
+        <file>icons/undo.svg</file>
+        <file>icons/write.svg</file>
         <file>Main.qml</file>
         <file>SourceEditor.qml</file>
         <file>PresenterView.qml</file>

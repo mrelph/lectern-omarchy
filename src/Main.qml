@@ -43,7 +43,7 @@ ApplicationWindow {
     onWorkspaceModeChanged: viewSettings.workspaceMode = workspaceMode
     onNotesVisibleChanged: viewSettings.notesVisible = notesVisible
     onEditorZoomChanged: viewSettings.editorZoom = editorZoom
-    readonly property bool dialogOpen: commands.visible || library.visible || gallery.visible || reference.visible
+    readonly property bool dialogOpen: appLook.visible || typePanel.visible || fileMenu.visible || commands.visible || library.visible || gallery.visible || reference.visible
                                        || help.visible || checkDialog.visible || updates.visible || discard.visible || conflict.visible
     readonly property bool editing: !presenting && !dialogOpen
     property bool presenting: false
@@ -59,21 +59,12 @@ ApplicationWindow {
     readonly property color line: theme.colors.line
     readonly property color muted: theme.colors.muted
 
-    component EditButton: ToolButton {
-        required property string hint
-        font.family: "monospace"
-        implicitWidth: 40
-        implicitHeight: 34
-        Accessible.name: hint
-        ToolTip.text: hint
-        ToolTip.visible: hovered || visualFocus
-        ToolTip.delay: 400
-        palette.buttonText: theme.colors.focus
-        background: Rectangle {
-            radius: theme.radius
-            color: parent.down || parent.hovered ? theme.colors.canvas : "transparent"
-            border.color: parent.visualFocus ? theme.colors.focus : win.line
-        }
+    component Hairline: Rectangle {
+        implicitWidth: 1
+        implicitHeight: 17
+        Layout.leftMargin: 4
+        Layout.rightMargin: 4
+        color: win.line
     }
 
     function changeAppearance(key, value) {
@@ -271,6 +262,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+Shift+R"; enabled: win.editing; onActivated: backend.reveal() }
     Shortcut { sequence: "Ctrl+Shift+O"; enabled: win.editing; onActivated: backend.choose("folder") }
     Shortcut { sequence: "Ctrl+Shift+L"; enabled: win.editing; onActivated: library.open() }
+    Shortcut { sequence: "Ctrl+,"; enabled: win.editing; onActivated: appLook.open() }
     function toggleEditorNotes() {
         if (notesEditor.applyChanges()) viewSettings.hideEditorNotes = !viewSettings.hideEditorNotes
     }
@@ -288,7 +280,7 @@ ApplicationWindow {
             [qsTr("Insert image or video…"), "Ctrl+Shift+I", () => { if (notesEditor.applyChanges() && editor.allowsImport()) backend.choose("media") }],
             [qsTr("Move slide up"), "Ctrl+Alt+↑", () => win.moveCurrent(-1)],
             [qsTr("Move slide down"), "Ctrl+Alt+↓", () => win.moveCurrent(1)],
-            [qsTr("App appearance"), "", () => appLook.open()],
+            [qsTr("Settings") + " · " + qsTr("App appearance"), "Ctrl+,", () => appLook.open()],
             [qsTr("Choose a slide theme"), "", () => gallery.open()],
             [qsTr("Open library"), "Ctrl+Shift+L", () => library.open()],
             [qsTr("Add folder…"), "Ctrl+Shift+O", () => backend.choose("folder")],
@@ -309,35 +301,138 @@ ApplicationWindow {
             [qsTr("Start Presenter View"), "Ctrl+Alt+Enter", () => win.startPresentation(true)]
         ]
     }
-    LecternDialog {
+    ToolPanel {
         id: appLook
         objectName: "appAppearanceDialog"
-        title: qsTr("App appearance")
-        anchors.centerIn: parent
-        modal: true
-        width: Math.min(400, win.width - 48)
-        standardButtons: Dialog.Close
+        trigger: settingsButton
+        width: 288
+        contentItem: ColumnLayout {
+            spacing: 7
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: qsTr("Appearance mode"); Layout.fillWidth: true }
+                Repeater {
+                    objectName: "appAppearanceMode"
+                    model: [["system", qsTr("System")], ["light", qsTr("Light")], ["dark", qsTr("Dark")]]
+                    GlyphButton {
+                        required property var modelData
+                        hint: modelData[1]
+                        symbol: "qrc:/icons/" + modelData[0] + ".svg"
+                        selectable: true
+                        selected: theme.appearance === modelData[0]
+                        onClicked: theme.appearance = modelData[0]
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: qsTr("Interface palette"); Layout.fillWidth: true }
+                Label { text: paletteChoices.labels[paletteChoices.names.indexOf(theme.interfacePalette)]; color: win.muted }
+            }
+            RowLayout {
+                spacing: 5
+                Repeater {
+                    id: paletteChoices
+                    objectName: "appInterfacePalette"
+                    readonly property var names: ["omarchy", "inkwell", "paper", "slate", "forest", "midnight"]
+                    readonly property var labels: [qsTr("Omarchy"), qsTr("Inkwell"), qsTr("Paper"), qsTr("Slate"), qsTr("Forest"), qsTr("Midnight")]
+                    model: names
+                    GlyphButton {
+                        required property string modelData
+                        required property int index
+                        hint: paletteChoices.labels[index]
+                        selectable: true
+                        selected: theme.interfacePalette === modelData
+                        onClicked: theme.interfacePalette = modelData
+                        contentItem: Item {
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 16; height: 16; radius: 8
+                                color: theme.paletteAccents[modelData]
+                                border.color: theme.colors.line
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    visible: theme.interfacePalette === modelData
+                                    color: parent.color.hslLightness > 0.55 ? "black" : "white"
+                                    font.pixelSize: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: win.line }
+            RowLayout {
+                Label { text: qsTr("Editor zoom"); Layout.fillWidth: true }
+                GlyphButton { mark: "−"; hint: qsTr("Zoom out"); chord: "Ctrl+-"; enabled: win.editorZoom > 10; onClicked: win.editorZoom -= 2 }
+                Label { text: win.editorZoom; horizontalAlignment: Text.AlignHCenter; Layout.minimumWidth: 22 }
+                GlyphButton { mark: "+"; hint: qsTr("Zoom in"); chord: "Ctrl+="; enabled: win.editorZoom < 32; onClicked: win.editorZoom += 2 }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: qsTr("Speaker notes"); Layout.fillWidth: true }
+                GlyphButton {
+                    hint: qsTr("Show or hide speaker notes")
+                    chord: "Ctrl+Alt+N"
+                    symbol: "qrc:/icons/notes.svg"
+                    selectable: true
+                    selected: win.notesVisible
+                    onClicked: if (notesEditor.applyChanges()) win.notesVisible = !win.notesVisible
+                }
+                GlyphButton {
+                    hint: qsTr("Show notes in editor")
+                    chord: "Ctrl+Alt+Shift+N"
+                    symbol: "qrc:/icons/source-notes.svg"
+                    selectable: true
+                    selected: !viewSettings.hideEditorNotes
+                    onClicked: win.toggleEditorNotes()
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: qsTr("Presentation"); Layout.fillWidth: true }
+                GlyphButton {
+                    hint: qsTr("Keep screen awake when presenting")
+                    symbol: "qrc:/icons/awake.svg"
+                    selectable: true
+                    selected: backend.keepAwake
+                    onClicked: backend.keepAwake = !backend.keepAwake
+                }
+            }
+        }
+    }
+    ToolPanel {
+        id: typePanel
+        trigger: fontButton
+        width: 310
         contentItem: GridLayout {
             columns: 2
-            Label { text: qsTr("Appearance mode") }
+            Label { text: qsTr("Slide font") }
             ComboBox {
-                objectName: "appAppearanceMode"
+                objectName: "slideFontPicker"
                 Layout.fillWidth: true
-                Accessible.name: qsTr("Appearance mode")
-                readonly property var values: ["system", "light", "dark"]
-                model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]
-                currentIndex: values.indexOf(theme.appearance)
-                onActivated: index => theme.appearance = values[index]
+                model: [qsTr("Default"), ...Qt.fontFamilies()]
+                displayText: backend.slideFont || qsTr("Default")
+                currentIndex: Math.max(0, model.indexOf(backend.slideFont))
+                Accessible.name: qsTr("Slide font")
+                onActivated: index => win.changeAppearance("font", index ? model[index] : "")
             }
-            Label { text: qsTr("Interface palette") }
+            Label { text: qsTr("Code font") }
             ComboBox {
-                objectName: "appInterfacePalette"
                 Layout.fillWidth: true
-                Accessible.name: qsTr("Interface palette")
-                readonly property var values: ["omarchy", "inkwell", "paper", "slate", "forest", "midnight"]
-                model: [qsTr("Omarchy"), qsTr("Inkwell"), qsTr("Paper"), qsTr("Slate"), qsTr("Forest"), qsTr("Midnight")]
-                currentIndex: values.indexOf(theme.interfacePalette)
-                onActivated: index => theme.interfacePalette = values[index]
+                Accessible.name: qsTr("Code font")
+                readonly property var values: ["", "system", "geist-mono"]
+                model: [qsTr("Default"), qsTr("System mono"), "Geist Mono"]
+                currentIndex: Math.max(0, values.indexOf(backend.codeFont))
+                onActivated: index => win.changeAppearance("code-font", values[index])
+            }
+            Label { text: qsTr("Size") }
+            SpinBox {
+                from: 12; to: 96
+                value: backend.slideSize
+                Accessible.name: qsTr("Slide font size")
+                onValueModified: win.changeAppearance("font-size", String(value))
             }
         }
     }
@@ -612,132 +707,119 @@ ApplicationWindow {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 52
+            Layout.preferredHeight: 48
             color: win.panel
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 8
-                Rectangle {
-                    width: 5
-                    height: 28
-                    color: theme.accent
-                    radius: Math.min(theme.radius, 2)
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                spacing: 4
+                GlyphButton {
+                    id: fileButton
+                    hint: qsTr("File")
+                    symbol: "qrc:/icons/more.svg"
+                    selected: fileMenu.visible
+                    onClicked: fileMenu.open()
+                    Menu {
+                        id: fileMenu
+                        y: fileButton.height + 5
+                        width: 236
+                        component Entry: MenuItem { implicitHeight: 31 }
+                        Entry { text: qsTr("New"); onTriggered: win.guard(() => backend.newDeck()) }
+                        Entry { text: qsTr("Open"); onTriggered: win.guard(() => backend.choose("open")) }
+                        Entry { text: qsTr("Open example"); onTriggered: win.guard(() => backend.sample()) }
+                        Entry { text: qsTr("Save As"); onTriggered: if (notesEditor.applyChanges()) backend.choose("save") }
+                        MenuSeparator {}
+                        Entry { text: qsTr("Export PDF"); onTriggered: backend.choose("pdf") }
+                        Entry { text: qsTr("Export PDF with notes"); onTriggered: if (notesEditor.applyChanges()) backend.choose("pdf-notes") }
+                        Entry { text: qsTr("Export slide images…"); onTriggered: backend.choose("png") }
+                        Entry { text: qsTr("Check deck…"); onTriggered: { checkDialog.problems = backend.validate(); checkDialog.open() } }
+                        MenuSeparator {}
+                        Entry { text: qsTr("Markdown reference…"); onTriggered: reference.open() }
+                        Entry { text: qsTr("Keyboard shortcuts"); onTriggered: { helpTabs.currentIndex = 1; help.open() } }
+                        Entry { objectName: "checkUpdates"; text: qsTr("Updates"); onTriggered: { updates.open(); updater.check() } }
+                    }
                 }
+                GlyphButton { hint: qsTr("Deck library"); chord: "Ctrl+Shift+L"; symbol: "qrc:/icons/library.svg"; onClicked: library.open() }
                 Label {
                     Layout.leftMargin: 5
+                    Layout.rightMargin: 8
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     text: backend.title || qsTr("Untitled deck")
                     textFormat: Text.PlainText
-                    font.pixelSize: 18
+                    font.pixelSize: 15
                     font.weight: Font.DemiBold
                 }
-                Button { flat: true; text: qsTr("New"); onClicked: win.guard(() => backend.newDeck()) }
-                Button { flat: true; text: qsTr("Open"); onClicked: win.guard(() => backend.choose("open")) }
-                Button {
-                    id: fileButton
-                    text: qsTr("File")
-                    onClicked: fileMenu.open()
-                    Menu {
-                        id: fileMenu
-                        MenuItem { text: qsTr("App appearance…"); onTriggered: appLook.open() }
-                        MenuItem { text: qsTr("Deck library…"); onTriggered: library.open() }
-                        MenuItem { text: qsTr("Markdown reference…"); onTriggered: reference.open() }
-                        MenuItem { text: qsTr("Open example"); onTriggered: win.guard(() => backend.sample()) }
-                        MenuItem {
-                            objectName: "checkUpdates"
-                            text: qsTr("Updates")
-                            onTriggered: { updates.open(); updater.check() }
-                        }
-                        y: fileButton.height
-                        MenuItem { text: qsTr("Save As"); onTriggered: if (notesEditor.applyChanges()) backend.choose("save") }
-                        MenuItem { text: qsTr("Export slide images…"); onTriggered: backend.choose("png") }
-                        MenuItem { text: qsTr("Check deck…"); onTriggered: { checkDialog.problems = backend.validate(); checkDialog.open() } }
-                        MenuItem { text: qsTr("Keep screen awake when presenting"); checkable: true; checked: backend.keepAwake; onTriggered: backend.keepAwake = checked }
-                        MenuItem { text: qsTr("Export PDF"); onTriggered: backend.choose("pdf") }
-                        MenuItem {
-                            text: qsTr("Export PDF with notes")
-                            onTriggered: if (notesEditor.applyChanges()) backend.choose("pdf-notes")
+                Rectangle {
+                    implicitWidth: views.implicitWidth + 6
+                    implicitHeight: 34
+                    color: theme.colors.chrome
+                    radius: Math.min(7, theme.radius)
+                    border.color: win.line
+                    Row {
+                        id: views
+                        anchors.centerIn: parent
+                        spacing: 1
+                        Repeater {
+                            model: [["write", qsTr("Write")], ["split", qsTr("Split view")], ["preview", qsTr("Preview")]]
+                            GlyphButton {
+                                required property var modelData
+                                required property int index
+                                hint: modelData[1]
+                                chord: "Ctrl+" + (index + 1)
+                                symbol: "qrc:/icons/" + modelData[0] + ".svg"
+                                selectable: true
+                                selected: win.workspaceMode === index
+                                onClicked: if (notesEditor.applyChanges()) win.workspaceMode = index
+                            }
                         }
                     }
                 }
-                Button { text: qsTr("Save"); onClicked: if (notesEditor.applyChanges()) backend.save() }
-                Button {
-                    text: qsTr("Present")
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: theme.accentForeground
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        implicitWidth: 90
-                        implicitHeight: 32
-                        radius: theme.radius
-                        color: theme.accent
-                        border.width: parent.visualFocus ? 2 : 0
-                        border.color: theme.accentForeground
-                    }
-                    highlighted: true
-                    Material.background: theme.accent
-                    Material.foreground: theme.accentForeground
-                    onClicked: win.togglePresent()
+                GlyphButton {
+                    id: fontButton
+                    objectName: "fontButton"
+                    hint: qsTr("Slide font")
+                    symbol: "qrc:/icons/font.svg"
+                    selected: typePanel.visible
+                    onClicked: typePanel.open()
                 }
-                Button { flat: true; text: qsTr("Presenter View"); onClicked: win.startPresentation(true) }
-                Button { text: "?"; Accessible.name: qsTr("Keyboard shortcuts"); onClicked: help.open() }
+                GlyphButton { hint: qsTr("Choose a slide theme"); symbol: "qrc:/icons/palette.svg"; onClicked: gallery.open() }
+                Hairline {}
+                GlyphButton { hint: qsTr("Export PDF"); chord: "Ctrl+Shift+E"; symbol: "qrc:/icons/export.svg"; onClicked: backend.choose("pdf") }
+                GlyphButton { hint: qsTr("Save"); chord: "Ctrl+S"; symbol: "qrc:/icons/save.svg"; onClicked: if (notesEditor.applyChanges()) backend.save() }
+                GlyphButton { hint: qsTr("Presenter View"); chord: "Ctrl+Alt+Enter"; symbol: "qrc:/icons/presenter.svg"; onClicked: win.startPresentation(true) }
+                GlyphButton { hint: qsTr("Present"); chord: "Ctrl+Enter"; symbol: "qrc:/icons/play.svg"; primary: true; onClicked: win.togglePresent() }
+                Hairline {}
+                GlyphButton {
+                    id: settingsButton
+                    objectName: "settingsButton"
+                    hint: qsTr("Settings")
+                    chord: "Ctrl+,"
+                    symbol: "qrc:/icons/settings.svg"
+                    selected: appLook.visible
+                    onClicked: appLook.open()
+                }
             }
         }
-
         Rectangle { Layout.fillWidth: true; height: 1; color: win.line }
-
         RowLayout {
+            visible: win.workspaceMode !== 2
             Layout.fillWidth: true
-            Layout.leftMargin: 16
-            Layout.rightMargin: 16
-            Layout.topMargin: 6
-            Layout.bottomMargin: 6
-            spacing: 10
-            Label { text: qsTr("Slide font"); color: win.muted }
-            ComboBox {
-                Layout.fillWidth: true
-                Layout.maximumWidth: 220
-                Layout.preferredHeight: 32
-                objectName: "slideFontPicker"
-                model: [qsTr("Default"), ...Qt.fontFamilies()]
-                displayText: backend.slideFont || qsTr("Default")
-                currentIndex: Math.max(0, model.indexOf(backend.slideFont))
-                Accessible.name: qsTr("Slide font")
-                onActivated: index => win.changeAppearance("font", index ? model[index] : "")
-            }
-            Label { text: qsTr("Size"); color: win.muted }
-            SpinBox {
-                Layout.preferredHeight: 32
-                from: 12
-                to: 96
-                value: backend.slideSize
-                Accessible.name: qsTr("Slide font size")
-                onValueModified: win.changeAppearance("font-size", String(value))
-            }
-            Button {
-                text: qsTr("Theme") + " · " + gallery.labels[gallery.names.indexOf(backend.slideTheme)]
-                Accessible.name: qsTr("Choose a slide theme")
-                onClicked: gallery.open()
+            Layout.leftMargin: 12
+            Layout.rightMargin: 12
+            Layout.preferredHeight: 39
+            spacing: 3
+            FormatBar {
+                formats: win.formats
+                onFormatRequested: index => win.format(win.formats[index])
+                onMediaRequested: if (notesEditor.applyChanges() && editor.allowsImport()) backend.choose("media")
             }
             Item { Layout.fillWidth: true }
-            ComboBox {
-                Layout.preferredHeight: 32
-                Accessible.name: qsTr("Workspace view")
-                model: [qsTr("Write"), qsTr("Split view"), qsTr("Preview")]
-                currentIndex: win.workspaceMode
-                displayText: model[win.workspaceMode]
-                onActivated: index => {
-                    if (notesEditor.applyChanges())
-                        win.workspaceMode = index
-                }
-            }
+            GlyphButton { hint: qsTr("Undo"); chord: "Ctrl+Z"; symbol: "qrc:/icons/undo.svg"; enabled: editor.canUndo; onClicked: { editor.forceActiveFocus(); editor.undo() } }
+            GlyphButton { hint: qsTr("Redo"); chord: "Ctrl+Shift+Z"; symbol: "qrc:/icons/redo.svg"; enabled: editor.canRedo; onClicked: { editor.forceActiveFocus(); editor.redo() } }
+            Hairline {}
+            GlyphButton { hint: qsTr("Find a command"); chord: "Ctrl+Shift+P"; symbol: "qrc:/icons/command.svg"; onClicked: commands.open() }
         }
 
         RowLayout {
@@ -760,7 +842,7 @@ ApplicationWindow {
                     spacing: 0
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 48
+                        Layout.preferredHeight: 30
                         Layout.leftMargin: 15
                         Layout.rightMargin: 10
                         spacing: 4
@@ -770,34 +852,6 @@ ApplicationWindow {
                             text: qsTr("Markdown")
                             font.weight: Font.DemiBold
                             color: win.muted
-                        }
-                        EditButton {
-                            text: qsTr("Commands")
-                            implicitWidth: Math.max(72, implicitContentWidth + 16)
-                            hint: qsTr("Find a command (Ctrl+Shift+P)")
-                            onClicked: commands.open()
-                        }
-                        EditButton {
-                            text: "↶"
-                            hint: qsTr("Undo")
-                            enabled: editor.canUndo
-                            onClicked: { editor.forceActiveFocus(); editor.undo() }
-                        }
-                        EditButton {
-                            text: "↷"
-                            hint: qsTr("Redo")
-                            enabled: editor.canRedo
-                            onClicked: { editor.forceActiveFocus(); editor.redo() }
-                        }
-                        EditButton {
-                            text: "H1"
-                            hint: qsTr("Heading")
-                            onClicked: win.format(win.formats[4])
-                        }
-                        EditButton {
-                            text: "•"
-                            hint: qsTr("Bullet list")
-                            onClicked: win.format(win.formats[7])
                         }
                     }
                     SourceEditor {
@@ -820,7 +874,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.leftMargin: 16
                         Layout.rightMargin: 14
-                        Layout.preferredHeight: 48
+                        Layout.preferredHeight: 30
                         Label { text: qsTr("Preview"); font.weight: Font.DemiBold; color: win.muted }
                         Item { Layout.fillWidth: true }
                         Label {

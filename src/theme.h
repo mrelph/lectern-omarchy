@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QFileSystemWatcher>
 #include <QObject>
 #include <QProcess>
@@ -10,6 +11,7 @@ class Theme : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString appearance READ appearance WRITE setAppearance NOTIFY changed)
     Q_PROPERTY(QString interfacePalette READ interfacePalette WRITE setInterfacePalette NOTIFY changed)
+    Q_PROPERTY(QVariantMap paletteAccents READ paletteAccents NOTIFY changed)
     Q_PROPERTY(QVariantMap colors READ colors NOTIFY changed)
     Q_PROPERTY(QString accent READ accent NOTIFY changed)
     Q_PROPERTY(QString accentForeground READ accentForeground NOTIFY changed)
@@ -26,6 +28,7 @@ public:
     QVariantMap colors() const { return m_colors; }
     QString accent() const { return m_colors.value("accent").toString(); }
     QString accentForeground() const;
+    QVariantMap paletteAccents() const;
     int radius() const { return m_radius; }
 
 signals:

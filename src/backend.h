@@ -18,6 +18,7 @@ class Backend : public QObject {
     Q_PROPERTY(bool keepAwake READ keepAwake WRITE setKeepAwake NOTIFY changed)
     Q_PROPERTY(QString source READ source NOTIFY sourceLoaded)
     Q_PROPERTY(QString slideFont READ slideFont NOTIFY changed)
+    Q_PROPERTY(QString codeFont READ codeFont NOTIFY changed)
     Q_PROPERTY(int slideSize READ slideSize NOTIFY changed)
     Q_PROPERTY(QString slideTheme READ slideTheme NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
@@ -51,6 +52,7 @@ public:
     Q_INVOKABLE QStringList validate() const { return m_deck.validate(directory()); }
     QString source() const { return m_source; }
     QString slideFont() const { return m_deck.font; }
+    QString codeFont() const { return m_deck.codeFont; }
     int slideSize() const { return m_deck.fontSize; }
     QString slideTheme() const { return m_deck.theme; }
     Q_INVOKABLE void setAppearance(const QString &key, const QString &value, QQuickTextDocument *document);
